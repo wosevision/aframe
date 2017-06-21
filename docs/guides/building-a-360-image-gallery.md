@@ -1,30 +1,31 @@
 ---
-title: Building with Components
+title: Building a 360&deg; Image Gallery
 type: guides
 layout: docs
 parent_section: guides
 order: 3
 ---
 
-> Fork the [360&deg; Image Gallery Boilerplate on GitHub](https://github.com/aframevr/360-image-gallery-boilerplate).
+> Remix the [360&deg; Image Gallery on
+> Glitch](https://glitch.com/~aframe-gallery). Or Fork the [360&deg; Image
+> Gallery Boilerplate on
+> GitHub](https://github.com/aframevr/360-image-gallery-boilerplate).
 
 ![360&deg; Image Viewer](/images/docs/360-image-viewer.png)
 
-[components]: ../core/component.md
-[ecs]: ../core/index.md
 [registry]: https://aframe.io/registry/
 
-Let's create an example of building a scene using an
-[entity-component-system][ecs] workflow. This guide will introduce three
-concepts:
+Let's build an interactive gaze-based **360&deg; image gallery**. There will be
+three panels which the user can click on. Once clicked, the background will
+fade and swap the 360&deg; images.
 
-1. Using the standard [components][components] that ship with A-Frame.
+[ecs]: ../introduction/entity-component-system.md
+
+This guide will practice three concepts related to [entity-component][ecs]:
+
+1. Using the standard components that come with A-Frame.
 2. Using community components from the ecosystem.
 3. Writing custom components to accomplish whatever we want.
-
-The scene we will build is a **360&deg; image gallery**. There will be three
-panels which the user can click on. Once clicked, the background will fade and
-swap the 360&deg; images.
 
 <!--toc-->
 
@@ -39,11 +40,11 @@ This is the starting point for our scene:
 
     <!-- Images. -->
     <img id="city" src="https://cdn.aframe.io/360-image-gallery-boilerplate/img/city.jpg">
-    <img id="city-thumb" src="https://cdn.aframe.io/360-image-gallery-boilerplate/img/thumb-city.png">
+    <img id="city-thumb" src="https://cdn.aframe.io/360-image-gallery-boilerplate/img/thumb-city.jpg">
     <img id="cubes" src="https://cdn.aframe.io/360-image-gallery-boilerplate/img/cubes.jpg">
-    <img id="cubes-thumb" src="https://cdn.aframe.io/360-image-gallery-boilerplate/img/thumb-cubes.png">
+    <img id="cubes-thumb" src="https://cdn.aframe.io/360-image-gallery-boilerplate/img/thumb-cubes.jpg">
     <img id="sechelt" src="https://cdn.aframe.io/360-image-gallery-boilerplate/img/sechelt.jpg">
-    <img id="sechelt-thumb" src="https://cdn.aframe.io/360-image-gallery-boilerplate/img/thumb-sechelt.png">
+    <img id="sechelt-thumb" src="https://cdn.aframe.io/360-image-gallery-boilerplate/img/thumb-sechelt.jpg">
   </a-assets>
 
   <!-- 360-degree image. -->
@@ -68,6 +69,7 @@ This is the starting point for our scene:
 [ams]: ../core/asset-management-system.md
 [animation-begin]: ../core/animations.md#begin
 [camera]: ../primitives/a-camera.md
+[component]: ../core/component.md
 [cursor]: ../components/cursor.md
 
 We have predefined:
@@ -311,7 +313,7 @@ instances][multiple]:
 ```html
 <a-assets>
   <!-- ... -->
-  <script id="link" type="text/nunjucks">
+  <script id="link" type="text/html">
     <a-entity class="link"
       geometry="primitive: plane; height: 1; width: 1"
       material="shader: flat; src: ${thumb}"
@@ -334,7 +336,7 @@ require us to write application-specific components.
 
 We want to write the component that fades the sky into a new 360&deg; image
 once one of the links are clicked. We'll call it `set-image`. The [component
-API documentation][components] provides a detailed reference for writing a
+API documentation][component] provides a detailed reference for writing a
 component. A basic component skeleton might look like:
 
 Here is the skeleton for our set-image component.
@@ -409,4 +411,4 @@ wait the appropriate amount of time, and swap the image:
 
 And that concludes our 360&deg; image gallery.
 
-> **[Try it out!](https://aframe.io/360-image-gallery-boilerplate/)**
+> **[Try it out!](https://aframe-gallery.glitch.me)**

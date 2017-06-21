@@ -25,17 +25,9 @@ module.exports.checkHeadsetConnected = checkHeadsetConnected;
  * Check for positional tracking.
  */
 function checkHasPositionalTracking () {
-  var position = new THREE.Vector3();
-  return (function () {
-    if (isMobile() || isGearVR()) { return false; }
-    controls.update();
-    dolly.updateMatrix();
-    position.setFromMatrixPosition(dolly.matrix);
-    if (position.x !== 0 || position.y !== 0 || position.z !== 0) {
-      return true;
-    }
-    return false;
-  })();
+  var vrDisplay = controls.getVRDisplay();
+  if (isMobile() || isGearVR()) { return false; }
+  return vrDisplay && vrDisplay.capabilities.hasPosition;
 }
 module.exports.checkHasPositionalTracking = checkHasPositionalTracking;
 
@@ -56,7 +48,7 @@ var isMobile = (function () {
     if (isGearVR()) {
       _isMobile = false;
     }
-  })(navigator.userAgent || navigator.vendor || window.opera);
+  })(window.navigator.userAgent || window.navigator.vendor || window.opera);
 
   return function () { return _isMobile; };
 })();
@@ -67,18 +59,18 @@ module.exports.isMobile = isMobile;
  *  @param {string} mockUserAgent - Allow passing a mock user agent for testing.
  */
 function isTablet (mockUserAgent) {
-  var userAgent = mockUserAgent || navigator.userAgent;
+  var userAgent = mockUserAgent || window.navigator.userAgent;
   return /ipad|Nexus (7|9)|xoom|sch-i800|playbook|tablet|kindle/i.test(userAgent);
 }
 module.exports.isTablet = isTablet;
 
 function isIOS () {
-  return /iPad|iPhone|iPod/.test(navigator.platform);
+  return /iPad|iPhone|iPod/.test(window.navigator.platform);
 }
 module.exports.isIOS = isIOS;
 
 function isGearVR () {
-  return /SamsungBrowser.+Mobile VR/i.test(navigator.userAgent);
+  return /SamsungBrowser.+Mobile VR/i.test(window.navigator.userAgent);
 }
 module.exports.isGearVR = isGearVR;
 
@@ -96,3 +88,17 @@ module.exports.isLandscape = function () {
 module.exports.isIOSOlderThan10 = function (userAgent) {
   return /(iphone|ipod|ipad).*os.(7|8|9)/i.test(userAgent);
 };
+
+/**
+ * Check if running in a browser or spoofed browser (bundler).
+ * We need to check a node api that isn't mocked on either side.
+ * `require` and `module.exports` are mocked in browser by bundlers.
+ * `window` is mocked in node.
+ * `process` is also mocked by browserify, but has custom properties.
+ */
+module.exports.isBrowserEnvironment = !!(!process || process.browser);
+
+/**
+ * Check if running in node on the server.
+ */
+module.exports.isNodeEnvironment = !module.exports.isBrowserEnvironment;

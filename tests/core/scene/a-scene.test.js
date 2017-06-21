@@ -1,9 +1,10 @@
-/* global AFRAME, assert, process, sinon, setup, suite, teardown, test */
+/* global AFRAME, assert, CustomEvent, process, sinon, setup, suite, teardown, test */
 var AEntity = require('core/a-entity');
 var ANode = require('core/a-node');
-var AScene = require('core/scene/a-scene');
+var AScene = require('core/scene/a-scene').AScene;
 var components = require('core/component').components;
 var scenes = require('core/scene/scenes');
+var shouldAntiAlias = require('core/scene/a-scene').shouldAntiAlias;
 var systems = require('core/system').systems;
 
 var helpers = require('../../helpers');
@@ -59,6 +60,37 @@ suite('a-scene (without renderer)', function () {
     });
   });
 
+  suite('vrdisplaypresentchange', function () {
+    test('tells A-Frame about entering VR if now presenting', function (done) {
+      var event;
+      var sceneEl = this.el;
+
+      sceneEl.addEventListener('enter-vr', function () {
+        assert.ok(sceneEl.is('vr-mode'));
+        done();
+      });
+
+      event = new CustomEvent('vrdisplaypresentchange');
+      event.display = {isPresenting: true};
+      window.dispatchEvent(event);
+    });
+
+    test('tells A-Frame about exiting VR if no longer presenting', function (done) {
+      var event;
+      var sceneEl = this.el;
+      sceneEl.addState('vr-mode');
+
+      sceneEl.addEventListener('exit-vr', function () {
+        assert.notOk(sceneEl.is('vr-mode'));
+        done();
+      });
+
+      event = new CustomEvent('vrdisplaypresentchange');
+      event.display = {isPresenting: false};
+      window.dispatchEvent(event);
+    });
+  });
+
   suite('enterVR', function () {
     setup(function () {
       var sceneEl = this.el;
@@ -106,6 +138,16 @@ suite('a-scene (without renderer)', function () {
       var sceneEl = this.el;
       var requestSpy = this.requestSpy;
       sceneEl.enterVR().then(function () {
+        assert.notOk(requestSpy.called);
+        done();
+      });
+    });
+
+    test('does not call requestPresent if flag passed', function (done) {
+      var sceneEl = this.el;
+      var requestSpy = this.requestSpy;
+      this.sinon.stub(sceneEl, 'checkHeadsetConnected').returns(true);
+      sceneEl.enterVR(true).then(function () {
         assert.notOk(requestSpy.called);
         done();
       });
@@ -201,6 +243,16 @@ suite('a-scene (without renderer)', function () {
       var sceneEl = this.el;
       var exitSpy = this.exitSpy;
       sceneEl.exitVR().then(function () {
+        assert.notOk(exitSpy.called);
+        done();
+      });
+    });
+
+    test('does not call exitPresent if flag passed', function (done) {
+      var sceneEl = this.el;
+      var exitSpy = this.exitSpy;
+      this.sinon.stub(sceneEl, 'checkHeadsetConnected').returns(true);
+      sceneEl.exitVR(true).then(function () {
         assert.notOk(exitSpy.called);
         done();
       });
@@ -400,7 +452,7 @@ helpers.getSkipCISuite()('a-scene (with renderer)', function () {
     });
   });
 
-  test('calls behaviors', function () {
+  test('calls tick behaviors', function () {
     var scene = this.el;
     var Component = {el: {isPlaying: true}, tick: function () {}};
     this.sinon.spy(Component, 'tick');
@@ -410,7 +462,17 @@ helpers.getSkipCISuite()('a-scene (with renderer)', function () {
     sinon.assert.calledWith(Component.tick, scene.time);
   });
 
-  test('clock', function () {
+  test('calls tock behaviors', function () {
+    var scene = this.el;
+    var Component = {el: {isPlaying: true}, tock: function () {}};
+    this.sinon.spy(Component, 'tock');
+    scene.addBehavior(Component);
+    scene.render();
+    sinon.assert.called(Component.tock);
+    sinon.assert.calledWith(Component.tock, scene.time);
+  });
+
+  test.skip('clock', function () {
     var scene = this.el;
 
     assert.isAbove(scene.time, 0);
@@ -452,5 +514,32 @@ suite('scenes', function () {
       });
     });
     document.body.appendChild(sceneEl);
+  });
+});
+
+suite('shouldAntiAlias', function () {
+  var sceneEl;
+
+  setup(function () {
+    sceneEl = document.createElement('a-scene');
+  });
+
+  test('is true if set to true', function () {
+    sceneEl.setAttribute('antialias', 'true');
+    assert.ok(shouldAntiAlias(sceneEl));
+  });
+
+  test('is false if set to false', function () {
+    sceneEl.setAttribute('antialias', 'false');
+    assert.notOk(shouldAntiAlias(sceneEl));
+  });
+
+  test('is true on desktop by default', function () {
+    assert.ok(shouldAntiAlias(sceneEl));
+  });
+
+  test('is false on mobile with no native webvr by default', function () {
+    sceneEl.isMobile = true;
+    assert.notOk(shouldAntiAlias(sceneEl));
   });
 });

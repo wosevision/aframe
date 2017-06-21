@@ -1,9 +1,9 @@
 ---
-title: Using JavaScript and DOM APIs
-type: guides
+title: JavaScript, Events, DOM APIs
+type: introduction
 layout: docs
-parent_section: guides
-order: 4
+parent_section: introduction
+order: 6
 ---
 
 [geometry]: ../components/geometry.md
@@ -35,7 +35,7 @@ the APIs discussed below.
 Before we go over the different ways to use JavaScript and DOM APIs, we
 recommend encapsulating your JavaScript code within [A-Frame components].
 Components modularize code, make logic and behavior visible from HTML, and
-ensure that code at the correct time (e.g., after the scene and entities have
+ensure that code is executed at the correct time (e.g., after the scene and entities have
 attached and initialized). As the most basic example, to register a
 `console.log` component:
 
@@ -122,7 +122,7 @@ console.log(sceneEl.querySelector('#redBox'));
 
 ### With `.querySelectorAll()`
 
-If we want to grab a group of elements, we use `.querySelector()` which returns
+If we want to grab a group of elements, we use `.querySelectorAll()` which returns
 an array of elements. We can query across element names:
 
 ```js
@@ -192,15 +192,38 @@ we want to add it to our scene. We grab the scene, create the entity, and
 append the entity to our scene.
 
 ```js
-var sceneEl = document.createElement('a-scene');
+var sceneEl = document.querySelector('a-scene');
 var entityEl = document.createElement('a-entity');
+// Do `.setAttribute()`s to initialize the entity.
 sceneEl.appendChild(entityEl);
 ```
 
-### Removing an Entity with `.remove()`
+Note that `.appendChild()` is an *asynchronous* operation in the browser. Until
+the entity has finished appending to the DOM, we can't do many operations on
+the entity (such as calling `.getAttribute()`). If we need to query an
+attribute on an entity that has just been appended, we can listen to the
+`loaded` event on the entity, or place logic in an A-Frame component so that
+it is executed once it is ready:
+
+```js
+var sceneEl = document.querySelector('a-scene');
+
+AFRAME.registerComponent('do-something-once-loaded', {
+  init: function () {
+    // This will be called after the entity has properly attached and loaded.
+    console.log('I am ready'!);
+  }
+});
+
+var entityEl = document.createElement('a-entity');
+entityEl.setAttribute('do-something-once-loaded', '');
+sceneEl.appendChild(entityEl);
+```
+
+### Removing an Entity with `.removeChild()`
 
 To remove an entity from the DOM and thus from the scene, we call
-`.remove(element)` from the parent element. If we have an entity, we have to
+`.removeChild(element)` from the parent element. If we have an entity, we have to
 ask its parent (`parentNode`) to remove the entity.
 
 ```js
@@ -295,12 +318,11 @@ entityEl.setAttribute('light', {color: '#ACC', intensity: 0.75});
 Let's replace all the properties of the [geometry component][geometry], a
 multi-property component. We do this by providing the component name, an object
 of properties to `.setAttribute()`, and a flag that specifies to clobber the
-existing properties. We'll change the light's color and intensity but leave the
-type the same:
+existing properties. We'll replace all of the geometry's existing properties with new properties:
 
 ```js
 // <a-entity geometry="primitive: cylinder; height: 4; radius: 2"></a-entity>
-entityEl.setAttribute('geometry', {primitive: 'torusKnot', p: 1, q: 3, radiusTubular: 4});
+entityEl.setAttribute('geometry', {primitive: 'torusKnot', p: 1, q: 3, radiusTubular: 4}, true);
 // <a-entity geometry="primitive: torusKnot; p: 1; q: 3; radiusTubular: 4"></a-entity>
 ```
 

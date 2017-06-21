@@ -1,4 +1,4 @@
-/* global assert, process, setup, suite, test, THREE */
+/* global assert, process, setup, suite, teardown, test, THREE */
 const entityFactory = require('../helpers').entityFactory;
 
 const PI = Math.PI;
@@ -146,6 +146,30 @@ suite('tracked-controls', function () {
       // [10, 10, 10] + ([2, 4, 6] - [1, 2, 3]).
       assertVec3(el.getAttribute('position'), [11, 12, 13]);
     });
+
+    test('adds camera userHeight if no stageParameters (e.g., 3DOF)', function () {
+      system.vrDisplay = {stageParameters: null};
+      el.sceneEl.camera.el.setAttribute('camera', 'userHeight', 2.5);
+      component.tick();
+      component.updatePose();
+      assert.equal(el.getAttribute('position').y, 2.5);
+      system.vrDisplay = undefined;
+    });
+
+    test('applies sittingToStandingTransform', function () {
+      var mockDisplay = Object.assign({}, system.vrDisplay);
+      system.vrDisplay = {
+        stageParameters: {
+          sittingToStandingTransform: [1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8]
+        }
+      };
+      component.tick();
+      component.updatePose();
+      assert.notEqual(el.getAttribute('position').x, 0);
+      assert.notEqual(el.getAttribute('position').y, 0);
+      assert.notEqual(el.getAttribute('position').z, 0);
+      system.vrDisplay = mockDisplay;
+    });
   });
 
   suite('updatePose (rotation)', function () {
@@ -204,6 +228,7 @@ suite('tracked-controls', function () {
       assert.deepEqual(component.axis, [0.5, 0.5, 0.5]);
       assert.equal(emitSpy.getCalls()[0].args[0], 'axismove');
       assert.deepEqual(emitSpy.getCalls()[0].args[1].axis, [0.5, 0.5, 0.5]);
+      assert.deepEqual(emitSpy.getCalls()[0].args[1].changed, [true, true, true]);
     });
 
     test('emits axismove if axis changed', function () {
@@ -217,6 +242,21 @@ suite('tracked-controls', function () {
       const emitCall = emitSpy.getCalls()[0];
       assert.equal(emitCall.args[0], 'axismove');
       assert.deepEqual(emitCall.args[1].axis, [1, 1, 1]);
+      assert.deepEqual(emitCall.args[1].changed, [true, true, true]);
+    });
+
+    test('emits axismove with correct axis changed flags', function () {
+      controller.axes = [0.5, 0.5, 0.5];
+      component.tick();
+      assert.deepEqual(component.axis, [0.5, 0.5, 0.5]);
+
+      const emitSpy = this.sinon.spy(el, 'emit');
+      controller.axes = [1, 0.5, 0.5];
+      component.tick();
+      const emitCall = emitSpy.getCalls()[0];
+      assert.equal(emitCall.args[0], 'axismove');
+      assert.deepEqual(emitCall.args[1].axis, [1, 0.5, 0.5]);
+      assert.deepEqual(emitCall.args[1].changed, [true, false, false]);
     });
   });
 
@@ -374,6 +414,31 @@ suite('tracked-controls', function () {
       component.tick();
       assert.equal(component.buttonStates[0].value, 0.25);
       assert.equal(component.buttonStates[1].value, 0.75);
+    });
+  });
+
+  suite('armModel', function () {
+    setup(function () {
+      delete controller.pose.position;
+    });
+
+    el = entityFactory();
+    test('if armModel false, do not apply', function () {
+      var applyArmModelSpy = this.sinon.spy(component, 'applyArmModel');
+      component.data.armModel = false;
+      component.tick();
+      assert.notOk(applyArmModelSpy.called);
+    });
+
+    test('if armModel true, apply', function () {
+      var applyArmModelSpy = this.sinon.spy(component, 'applyArmModel');
+      component.data.armModel = true;
+      component.tick();
+      assert.ok(applyArmModelSpy.called);
+    });
+
+    teardown(function () {
+      controller.pose.position = [0, 0, 0];
     });
   });
 });

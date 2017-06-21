@@ -16,6 +16,7 @@ suite('look-controls', function () {
     test('reset previous HMD position upon exit-vr event', function (done) {
       var el = this.sceneEl;
       var lookControls = el.camera.el.components['look-controls'];
+      el.camera.el.components['camera'].hasPositionalTracking = false;
       lookControls.previousHMDPosition.set(1, 2, 3);
       process.nextTick(function () {
         assert.ok(lookControls.previousHMDPosition.length() === 0);
@@ -37,7 +38,9 @@ suite('look-controls', function () {
         document.body.classList.remove(GRABBING_CLASS);
         done();
       });
-      el.canvas.dispatchEvent(new Event('mousedown'));
+      var event = new Event('mousedown');
+      event.button = 0;
+      el.canvas.dispatchEvent(event);
     });
 
     test('removes grabbing class from document body on document body mouseup', function (done) {

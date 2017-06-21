@@ -3,6 +3,8 @@ var entityFactory = require('../helpers').entityFactory;
 var shaders = require('core/shader').shaders;
 var THREE = require('index').THREE;
 
+var IMG_SRC = '/base/tests/assets/test.png';
+
 suite('material', function () {
   setup(function (done) {
     var el = this.el = entityFactory();
@@ -43,6 +45,7 @@ suite('material', function () {
     });
 
     test('defaults to standard material', function () {
+      this.el.removeAttribute('material'); // setup creates a non-default component
       this.el.setAttribute('material', '');
       assert.equal(this.el.getObject3D('mesh').material.type, 'MeshStandardMaterial');
     });
@@ -109,6 +112,40 @@ suite('material', function () {
         assert.notOk(el.components.material.material.map);
         done();
       });
+    });
+
+    test('does not invoke XHR if passing <img>', function (done) {
+      var el = this.el;
+      var assetsEl = document.createElement('a-assets');
+      var img = document.createElement('img');
+      var imageLoaderSpy = this.sinon.spy(THREE.ImageLoader.prototype, 'load');
+      var textureLoaderSpy = this.sinon.spy(THREE.TextureLoader.prototype, 'load');
+      img.setAttribute('src', IMG_SRC);
+      img.setAttribute('id', 'foo');
+      THREE.Cache.files[IMG_SRC] = img;
+      assetsEl.appendChild(img);
+      el.sceneEl.appendChild(assetsEl);
+      el.addEventListener('materialtextureloaded', function () {
+        assert.notOk(imageLoaderSpy.called);
+        assert.notOk(textureLoaderSpy.called);
+        delete THREE.Cache.files[IMG_SRC];
+        THREE.ImageLoader.prototype.load.restore();
+        THREE.TextureLoader.prototype.load.restore();
+        done();
+      });
+      el.setAttribute('material', 'src', '#foo');
+    });
+
+    test('invokes XHR if <img> not cached', function (done) {
+      var el = this.el;
+      var textureLoaderSpy = this.sinon.spy(THREE.TextureLoader.prototype, 'load');
+      el.addEventListener('materialtextureloaded', function () {
+        assert.ok(textureLoaderSpy.called);
+        assert.ok(IMG_SRC in THREE.Cache.files);
+        THREE.TextureLoader.prototype.load.restore();
+        done();
+      });
+      el.setAttribute('material', 'src', IMG_SRC);
     });
 
     test('sets material to MeshShaderMaterial for custom shaders', function () {
@@ -195,6 +232,17 @@ suite('material', function () {
       el.setAttribute('material', 'side: double');
       assert.equal(el.getObject3D('mesh').material.side, THREE.DoubleSide);
     });
+
+    test('sets material.needsUpdate true if side switchs from/to double', function () {
+      var el = this.el;
+      el.setAttribute('material', 'side: front');
+      el.getObject3D('mesh').material.needsUpdate = false;
+      el.setAttribute('material', 'side: double');
+      assert.equal(el.getObject3D('mesh').material.needsUpdate, 1);
+      el.getObject3D('mesh').material.needsUpdate = false;
+      el.setAttribute('material', 'side: front');
+      assert.equal(el.getObject3D('mesh').material.needsUpdate, 1);
+    });
   });
 
   suite('transparent', function () {
@@ -228,6 +276,33 @@ suite('material', function () {
       assert.ok(el.getObject3D('mesh').material.depthTest);
       el.setAttribute('material', 'depthTest: false');
       assert.equal(el.getObject3D('mesh').material.depthTest, 0);
+    });
+  });
+
+  suite('depthWrite', function () {
+    test('can be set to false', function () {
+      var el = this.el;
+      assert.ok(el.getObject3D('mesh').material.depthWrite);
+      el.setAttribute('material', 'depthWrite: false');
+      assert.equal(el.getObject3D('mesh').material.depthWrite, 0);
+    });
+  });
+
+  suite('alphaTest', function () {
+    test('can be updated', function () {
+      var el = this.el;
+      assert.equal(el.getObject3D('mesh').material.alphaTest, 0);
+      el.setAttribute('material', 'alphaTest: 1.0');
+      assert.equal(el.getObject3D('mesh').material.alphaTest, 1);
+    });
+
+    test('sets material.needsUpdate true if alphaTest is updated', function () {
+      var el = this.el;
+      el.setAttribute('material', 'alphaTest: 0.0');
+      el.getObject3D('mesh').material.needsUpdate = false;
+      assert.equal(el.getObject3D('mesh').material.needsUpdate, 0);
+      el.setAttribute('material', 'alphaTest: 1.0');
+      assert.equal(el.getObject3D('mesh').material.needsUpdate, 1);
     });
   });
 

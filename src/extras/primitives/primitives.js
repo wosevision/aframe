@@ -45,6 +45,7 @@ module.exports.registerPrimitive = function registerPrimitive (name, definition)
           var self = this;
           Object.keys(mappings).forEach(function resolveCollision (key) {
             var newAttribute;
+            if (key !== key.toLowerCase()) { warn('Mapping keys should be specified in lower case. The mapping key ' + key + ' may not be recognized'); }
             if (components[key]) {
               newAttribute = mappings[key].replace('.', '-');
               mappings[newAttribute] = mappings[key];
@@ -89,6 +90,7 @@ module.exports.registerPrimitive = function registerPrimitive (name, definition)
             if (mapping) {
               path = utils.entity.getComponentPropertyPath(mapping);
               if (path.constructor === Array) {
+                data[path[0]] = data[path[0]] || {};
                 data[path[0]][path[1]] = attr.value;
               } else {
                 data[path] = attr.value;
